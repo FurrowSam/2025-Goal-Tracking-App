@@ -49,6 +49,8 @@ if str(today) in progress_table.index:
 
 # Save progress
 if st.button("Save Progress"):
+    st.write(progress_table.head())
+
     progress_table.to_csv("progress_tracker.csv")
     st.success("Progress saved!")
 
