@@ -23,6 +23,7 @@ def load_data():
         "Plan for Tomorrow"
     ]
     # Create a date range for the year
+    # 2025 is used as an example year
     date_range = pd.date_range(start="2025-01-01", end="2025-12-31", freq="D")
     # Create DataFrame
     progress_table = pd.DataFrame(index=date_range, columns=activities)
@@ -30,6 +31,7 @@ def load_data():
     return progress_table
 
 # Load data or read from CSV
+# If the CSV file does not exist, create a new DataFrame
 try:
     progress_table = pd.read_csv("progress_tracker.csv", index_col=0)
     progress_table.index = pd.to_datetime(progress_table.index)  # Ensure proper datetime index
@@ -37,6 +39,7 @@ except FileNotFoundError:
     progress_table = load_data()
 
 # Title
+# Set the title of the app
 st.title("🌟 2025 Daily Progress Tracker")
 
 # Sidebar for navigation
