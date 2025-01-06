@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import date
 
+# Set page configuration
 # Initialize the DataFrame or load from a CSV file
 @st.cache_data
 def load_data():
