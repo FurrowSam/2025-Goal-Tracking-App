@@ -32,51 +32,64 @@ def load_data():
 progress_table = load_data()
 
 # Title
-st.title("2025 Daily Progress Tracker")
+st.title("🌟 2025 Daily Progress Tracker")
+
+# Sidebar for navigation
+st.sidebar.header("Navigation")
+view = st.sidebar.radio("Go to:", ["Today's Activities", "Full Progress Table", "Visualizations"])
 
 # Select today's date
-today = st.date_input("Select the date", date.today())
+today = st.sidebar.date_input("Select the date", date.today())
 
-# Display activities for today
-st.header(f"Activities for {today}")
-if str(today) in progress_table.index:
-    for activity in progress_table.columns:
-        # Add a checkbox for each activity
-        if st.checkbox(activity, key=f"{today}_{activity}"):
-            progress_table.loc[str(today), activity] = "Completed"
-        else:
-            progress_table.loc[str(today), activity] = "Not Completed"
+if view == "Today's Activities":
+    # Display activities for today
+    st.header(f"✅ Activities for {today}")
+    st.markdown("Check off activities as you complete them:")
 
-# Save progress
-if st.button("Save Progress"):
-    st.write(progress_table.head())
+    if str(today) in progress_table.index:
+        cols = st.columns(len(progress_table.columns) // 3 + 1)  # Split activities into columns
+        for i, activity in enumerate(progress_table.columns):
+            with cols[i % len(cols)]:
+                # Add a checkbox for each activity
+                if st.checkbox(activity, key=f"{today}_{activity}"):
+                    progress_table.loc[str(today), activity] = "Completed"
+                else:
+                    progress_table.loc[str(today), activity] = "Not Completed"
 
-    progress_table.to_csv("progress_tracker.csv")
-    st.success("Progress saved!")
+    # Save progress
+    if st.button("Save Progress"):
+        progress_table.to_csv("progress_tracker.csv")
+        st.success("Progress saved!")
 
-# Display the full table (optional)
-if st.checkbox("Show Full Progress Table"):
-    st.dataframe(progress_table)
+elif view == "Full Progress Table":
+    st.header("📋 Full Progress Table")
+    st.markdown("Review your progress throughout the year.")
+    
+    # Highlight completed rows in green
+    def color_completed(val):
+        return "background-color: #d4edda; color: black;" if val == "Completed" else ""
 
-# Seaborn Visualizations
-st.header("Progress Visualizations")
+    styled_table = progress_table.style.applymap(color_completed)
+    st.dataframe(styled_table, use_container_width=True)
 
-# Create a summary of completed tasks
-if st.button("Generate Visualization"):
-    completed_counts = (progress_table == "Completed").sum(axis=1).reset_index()
-    completed_counts.columns = ["Date", "Completed Activities"]
+elif view == "Visualizations":
+    # Seaborn Visualizations
+    st.header("📊 Progress Visualizations")
+    st.markdown("Visualize your progress over time.")
 
-    # Lineplot of progress over time
-    plt.figure(figsize=(10, 5))
-    sns.lineplot(data=completed_counts, x="Date", y="Completed Activities")
-    plt.title("Number of Completed Activities Over Time")
-    plt.xlabel("Date")
-    plt.ylabel("Completed Activities")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
+    if st.button("Generate Visualization"):
+        # Create a summary of completed tasks
+        completed_counts = (progress_table == "Completed").sum(axis=1).reset_index()
+        completed_counts.columns = ["Date", "Completed Activities"]
 
-    # Display the plot in Streamlit
-    st.pyplot(plt)
+        # Lineplot of progress over time
+        plt.figure(figsize=(10, 5))
+        sns.lineplot(data=completed_counts, x="Date", y="Completed Activities", marker="o")
+        plt.title("📈 Number of Completed Activities Over Time", fontsize=16)
+        plt.xlabel("Date", fontsize=12)
+        plt.ylabel("Completed Activities", fontsize=12)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
 
-
-
+        # Display the plot in Streamlit
+        st.pyplot(plt)
