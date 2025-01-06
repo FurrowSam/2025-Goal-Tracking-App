@@ -28,8 +28,12 @@ def load_data():
     progress_table[:] = "Not Completed"  # Default status
     return progress_table
 
-# Load data
-progress_table = load_data()
+# Load data or read from CSV
+try:
+    progress_table = pd.read_csv("progress_tracker.csv", index_col=0)
+    progress_table.index = pd.to_datetime(progress_table.index)  # Ensure proper datetime index
+except FileNotFoundError:
+    progress_table = load_data()
 
 # Title
 st.title("🌟 2025 Daily Progress Tracker")
@@ -51,15 +55,13 @@ if view == "Today's Activities":
         for i, activity in enumerate(progress_table.columns):
             with cols[i % len(cols)]:
                 # Add a checkbox for each activity
-                if st.checkbox(activity, key=f"{today}_{activity}"):
+                if st.checkbox(activity, key=f"{today}_{activity}", value=(progress_table.loc[str(today), activity] == "Completed")):
                     progress_table.loc[str(today), activity] = "Completed"
                 else:
                     progress_table.loc[str(today), activity] = "Not Completed"
 
-    # Save progress
-    if st.button("Save Progress"):
-        progress_table.to_csv("progress_tracker.csv")
-        st.success("Progress saved!")
+                # Save progress to CSV in real-time
+                progress_table.to_csv("progress_tracker.csv")
 
 elif view == "Full Progress Table":
     st.header("📋 Full Progress Table")
