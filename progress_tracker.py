@@ -20,7 +20,7 @@ def load_data():
         "Afternoon Workout",
         "Dinner / Chores",
         "Free Time",
-        "Plan for Tomorrow"
+        "Planning for Tomorrow"
     ]
     # Create a date range for the year
     # 2025 is used as an example year
