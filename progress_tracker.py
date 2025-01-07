@@ -32,14 +32,18 @@ def load_data():
     # Create DataFrame
     progress_table = pd.DataFrame(index=date_range, columns=activities)
     progress_table[:] = "Not Completed"  # Default status
+
+    # Format the index to DD-MMM-YY
+    progress_table.index = progress_table.index.strftime("%d-%b-%y")
     return progress_table
 
 # Load data or read from CSV
 try:
     progress_table = pd.read_csv("progress_tracker.csv", index_col=0)
-    progress_table.index = pd.to_datetime(progress_table.index)  # Ensure proper datetime index
+    progress_table.index = pd.to_datetime(progress_table.index).strftime("%d-%b-%y")  # Ensure proper datetime index format
 except FileNotFoundError:
     progress_table = load_data()
+
 
 # Title
 st.title("🌟 2025 Daily Progress Tracker")
