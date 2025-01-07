@@ -42,7 +42,7 @@ except FileNotFoundError:
     progress_table = load_data()
 
 # Title
-st.title("🌟 2025 Daily Progress Tracker")
+st.title(" 🦖 2025 Daily Progress Tracker")
 
 # Sidebar for navigation
 st.sidebar.header("Navigation")
@@ -75,7 +75,7 @@ if view == "Today's Activities":
         progress_table.to_csv("progress_tracker.csv", index=True)
 
 elif view == "Full Progress Table":
-    st.header("📋 Full Progress Table")
+    st.header("📑 Full Progress Table")
     st.markdown("Review your progress throughout the year.")
 
     # Highlight completed rows in green
