@@ -32,18 +32,14 @@ def load_data():
     # Create DataFrame
     progress_table = pd.DataFrame(index=date_range, columns=activities)
     progress_table[:] = "Not Completed"  # Default status
-
-    # Format the index to DD-MMM-YY
-    progress_table.index = progress_table.index.strftime("%d-%b-%y")
     return progress_table
 
 # Load data or read from CSV
 try:
     progress_table = pd.read_csv("progress_tracker.csv", index_col=0)
-    progress_table.index = pd.to_datetime(progress_table.index).strftime("%d-%b-%y")  # Ensure proper datetime index format
+    progress_table.index = pd.to_datetime(progress_table.index)  # Ensure proper datetime index
 except FileNotFoundError:
     progress_table = load_data()
-
 
 # Title
 st.title("🌟 2025 Daily Progress Tracker")
@@ -57,21 +53,22 @@ today = st.sidebar.date_input("Select the date", date.today())
 
 if view == "Today's Activities":
     # Display activities for today
-    st.header(f"✅ Activities for {today}")
+    st.header(f"✅ Activities for {today.strftime('%d-%b-%y')}")
     st.markdown("Check off activities as you complete them:")
 
-    if str(today) in progress_table.index.astype(str):  # Ensure date format matches
+    # Ensure proper datetime matching
+    if today in progress_table.index:
         cols = st.columns(len(progress_table.columns) // 3 + 1)  # Split activities into columns
         for i, activity in enumerate(progress_table.columns):
             with cols[i % len(cols)]:
                 key = f"{today.strftime('%Y-%m-%d')}_{activity}"  # Ensure unique keys
-                if st.checkbox(activity, key=key, value=(progress_table.loc[str(today), activity] == "Completed")):
-                    progress_table.loc[str(today), activity] = "Completed"
+                if st.checkbox(activity, key=key, value=(progress_table.loc[today, activity] == "Completed")):
+                    progress_table.loc[today, activity] = "Completed"
                 else:
-                    progress_table.loc[str(today), activity] = "Not Completed"
+                    progress_table.loc[today, activity] = "Not Completed"
 
         # Save progress to CSV in real-time
-        progress_table.to_csv("progress_tracker.csv", index=True)  # Ensure index is saved
+        progress_table.to_csv("progress_tracker.csv", index=True)
 
 elif view == "Full Progress Table":
     st.header("📋 Full Progress Table")
@@ -82,14 +79,14 @@ elif view == "Full Progress Table":
         return "background-color: #d4edda; color: black;" if val == "Completed" else ""
 
     styled_table = progress_table.style.applymap(color_completed)
-    st.dataframe(styled_table, use_container_width=True)
+    # Format index for display
+    progress_table_display = progress_table.copy()
+    progress_table_display.index = progress_table_display.index.strftime("%d-%b-%y")
+    st.dataframe(progress_table_display.style.applymap(color_completed), use_container_width=True)
 
 elif view == "Visualizations":
     st.header("📊 Progress Dashboard")
     st.markdown("A snapshot of your progress and task completion overview.")
-
-    # Ensure progress_table index is datetime
-    progress_table.index = pd.to_datetime(progress_table.index)
 
     # Total number of tasks completed across all activities
     total_completed = (progress_table == "Completed").sum().sum()
@@ -134,7 +131,6 @@ elif view == "Visualizations":
     daily_completed = (progress_table == "Completed").sum(axis=1)
     daily_completed_df = daily_completed.reset_index()
     daily_completed_df.columns = ["Date", "Completed Count"]
-    daily_completed_df["Date"] = pd.to_datetime(daily_completed_df["Date"])  # Ensure datetime type
     daily_completed_df["Week"] = daily_completed_df["Date"].dt.isocalendar().week
     daily_completed_df["Day"] = daily_completed_df["Date"].dt.day_name()
 
