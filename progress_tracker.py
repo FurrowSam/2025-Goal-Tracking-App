@@ -79,23 +79,69 @@ elif view == "Full Progress Table":
     st.dataframe(styled_table, use_container_width=True)
 
 elif view == "Visualizations":
-    # Seaborn Visualizations
-    st.header("📊 Progress Visualizations")
-    st.markdown("Visualize your progress over time.")
+    st.header("📊 Progress Dashboard")
+    st.markdown("A snapshot of your progress and task completion overview.")
 
-    if st.button("Generate Visualization"):
-        # Create a summary of completed tasks
-        completed_counts = (progress_table == "Completed").sum(axis=1).reset_index()
-        completed_counts.columns = ["Date", "Completed Activities"]
+    # Total number of tasks completed across all activities
+    total_completed = (progress_table == "Completed").sum().sum()
+    total_tasks = progress_table.size
+    completion_rate = total_completed / total_tasks * 100
 
-        # Lineplot of progress over time
-        plt.figure(figsize=(10, 5))
-        sns.lineplot(data=completed_counts, x="Date", y="Completed Activities", marker="o")
-        plt.title("📈 Number of Completed Activities Over Time", fontsize=16)
-        plt.xlabel("Date", fontsize=12)
-        plt.ylabel("Completed Activities", fontsize=12)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
+    # Task completion counts
+    task_completion_counts = (progress_table == "Completed").sum(axis=0).sort_values(ascending=False)
 
-        # Display the plot in Streamlit
-        st.pyplot(plt)
+    # Display KPIs
+    st.markdown("### 📈 Key Performance Indicators")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Completed Tasks", total_completed)
+    col2.metric("Total Tasks", total_tasks)
+    col3.metric("Completion Rate", f"{completion_rate:.2f}%")
+
+    # Task completion comparison bar chart
+    st.markdown("### 🔄 Task Completion Comparison")
+    import plotly.express as px
+    task_completion_df = task_completion_counts.reset_index()
+    task_completion_df.columns = ["Activity", "Total Completed"]
+
+    fig_bar = px.bar(
+        task_completion_df,
+        x="Total Completed",
+        y="Activity",
+        orientation="h",
+        title="Total Completed Tasks Per Activity",
+        color="Total Completed",
+        color_continuous_scale="Viridis",
+    )
+    fig_bar.update_layout(
+        xaxis_title="Total Completed",
+        yaxis_title="Activity",
+        title_font_size=18,
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # Weekly progress heatmap (optional additional visualization)
+    st.markdown("### 📅 Weekly Progress Heatmap")
+    daily_completed = (progress_table == "Completed").sum(axis=1)
+    daily_completed_df = daily_completed.reset_index()
+    daily_completed_df.columns = ["Date", "Completed Count"]
+    daily_completed_df["Week"] = daily_completed_df["Date"].dt.isocalendar().week
+    daily_completed_df["Day"] = daily_completed_df["Date"].dt.day_name()
+
+    fig_heatmap = px.density_heatmap(
+        daily_completed_df,
+        x="Day",
+        y="Week",
+        z="Completed Count",
+        title="Weekly Task Completion Heatmap",
+        color_continuous_scale="Blues",
+    )
+    fig_heatmap.update_layout(
+        xaxis_title="Day of the Week",
+        yaxis_title="Week Number",
+        title_font_size=18,
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+    )
+    st.plotly_chart(fig_heatmap, use_container_width=True)
