@@ -6,7 +6,7 @@ from datetime import date
 import plotly.express as px
 
 # Set page configuration
-st.set_page_config(page_title="Daily Progress Tracker", layout="wide")
+st.set_page_config(page_title="Daily Progress Tracker", layout="centered")
 
 # Initialize the DataFrame or load from a CSV file
 @st.cache_data
