@@ -1,14 +1,17 @@
-from dash import Dash, dcc, html, Input, Output, State
+import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import seaborn as sns
+import matplotlib.pyplot as plt
 from datetime import date
+import plotly.express as px
 
-# Initialize the app
-app = Dash(__name__)
+# Set page configuration
+st.set_page_config(page_title="Daily Progress Tracker", layout="wide")
 
-# Define activities and initialize data
+# Initialize the DataFrame or load from a CSV file
+@st.cache_data
 def load_data():
+    # Define activities
     activities = [
         "Morning Workout",
         "Breakfast",
@@ -16,122 +19,134 @@ def load_data():
         "Work Hours",
         "Afternoon Walk",
         "Snack/Refresh",
-        "AI/ML Projects / Job Search",
+        "Job Search",
+        "Minimum of 4 GitHub Commits",
         "Afternoon Workout",
         "Dinner / Chores",
         "Free Time",
-        "Plan for Tomorrow"
+        "Planning for Tomorrow"
     ]
+    # Create a date range for the year
+    # 2025 is used as an example year
     date_range = pd.date_range(start="2025-01-01", end="2025-12-31", freq="D")
+    # Create DataFrame
     progress_table = pd.DataFrame(index=date_range, columns=activities)
-    progress_table[:] = "Not Completed"
+    progress_table[:] = "Not Completed"  # Default status
     return progress_table
 
-# Load the initial data
-progress_table = load_data()
+# Load data or read from CSV
+try:
+    progress_table = pd.read_csv("progress_tracker.csv", index_col=0)
+    progress_table.index = pd.to_datetime(progress_table.index)  # Ensure proper datetime index
+except FileNotFoundError:
+    progress_table = load_data()
 
-# Layout of the app
-app.layout = html.Div([
-    html.H1("2025 Daily Progress Tracker"),
-    
-    # Date Picker
-    dcc.DatePickerSingle(
-        id='date-picker',
-        date=date.today(),
-        display_format="YYYY-MM-DD"
-    ),
-    html.H3(id='date-header'),
+# Title
+st.title("🌟 2025 Daily Progress Tracker")
 
-    # Activity Checkboxes
-    html.Div(id='activity-checklist'),
+# Sidebar for navigation
+st.sidebar.header("Navigation")
+view = st.sidebar.radio("Go to:", ["Today's Activities", "Full Progress Table", "Visualizations"])
 
-    # Save Button
-    html.Button("Save Progress", id='save-button', n_clicks=0),
-    html.Div(id='save-message'),
+# Select today's date
+today = st.sidebar.date_input("Select the date", date.today())
 
-    # Full Table Display
-    html.Button("Show Full Progress Table", id='show-table-button', n_clicks=0),
-    html.Div(id='full-table-container'),
+if view == "Today's Activities":
+    # Display activities for today
+    st.header(f"✅ Activities for {today}")
+    st.markdown("Check off activities as you complete them:")
 
-    # Visualization
-    html.Button("Generate Visualization", id='generate-viz-button', n_clicks=0),
-    dcc.Graph(id='progress-viz')
-])
+    if str(today) in progress_table.index.astype(str):  # Ensure date format matches
+        cols = st.columns(len(progress_table.columns) // 3 + 1)  # Split activities into columns
+        for i, activity in enumerate(progress_table.columns):
+            with cols[i % len(cols)]:
+                key = f"{today.strftime('%Y-%m-%d')}_{activity}"  # Ensure unique keys
+                if st.checkbox(activity, key=key, value=(progress_table.loc[str(today), activity] == "Completed")):
+                    progress_table.loc[str(today), activity] = "Completed"
+                else:
+                    progress_table.loc[str(today), activity] = "Not Completed"
 
-# Callbacks for dynamic content
-@app.callback(
-    [Output('date-header', 'children'),
-     Output('activity-checklist', 'children')],
-    [Input('date-picker', 'date')]
-)
-def update_activities(selected_date):
-    if not selected_date:
-        selected_date = str(date.today())
+        # Save progress to CSV in real-time
+        progress_table.to_csv("progress_tracker.csv", index=True)  # Ensure index is saved
 
-    checklist = []
-    for activity in progress_table.columns:
-        checklist.append(
-            html.Div([
-                dcc.Checklist(
-                    options=[{'label': activity, 'value': 'Completed'}],
-                    id=f"checklist-{activity}",
-                    value=['Completed'] if progress_table.loc[selected_date, activity] == "Completed" else []
-                )
-            ])
-        )
-    return f"Activities for {selected_date}", checklist
+elif view == "Full Progress Table":
+    st.header("📋 Full Progress Table")
+    st.markdown("Review your progress throughout the year.")
 
+    # Highlight completed rows in green
+    def color_completed(val):
+        return "background-color: #d4edda; color: black;" if val == "Completed" else ""
 
-@app.callback(
-    Output('save-message', 'children'),
-    [Input('save-button', 'n_clicks')],
-    [State('date-picker', 'date')] + [
-        State(f"checklist-{activity}", 'value') for activity in load_data().columns
-    ]
-)
-def save_progress(n_clicks, selected_date, *activity_states):
-    if n_clicks > 0:
-        for activity, state in zip(progress_table.columns, activity_states):
-            progress_table.loc[selected_date, activity] = "Completed" if 'Completed' in state else "Not Completed"
-        
-        progress_table.to_csv("progress_tracker.csv")
-        return "Progress saved successfully!"
+    styled_table = progress_table.style.applymap(color_completed)
+    st.dataframe(styled_table, use_container_width=True)
 
+elif view == "Visualizations":
+    st.header("📊 Progress Dashboard")
+    st.markdown("A snapshot of your progress and task completion overview.")
 
-@app.callback(
-    Output('full-table-container', 'children'),
-    [Input('show-table-button', 'n_clicks')]
-)
-def show_full_table(n_clicks):
-    if n_clicks > 0:
-        return html.Div([
-            html.H4("Full Progress Table"),
-            dcc.Graph(
-                figure=go.Figure(data=[
-                    go.Table(
-                        header=dict(values=["Date"] + list(progress_table.columns)),
-                        cells=dict(values=[progress_table.index] + [progress_table[col].values for col in progress_table.columns])
-                    )
-                ])
-            )
-        ])
-    return ""
+    # Ensure progress_table index is datetime
+    progress_table.index = pd.to_datetime(progress_table.index)
 
+    # Total number of tasks completed across all activities
+    total_completed = (progress_table == "Completed").sum().sum()
+    total_tasks = progress_table.size
+    completion_rate = total_completed / total_tasks * 100
 
-@app.callback(
-    Output('progress-viz', 'figure'),
-    [Input('generate-viz-button', 'n_clicks')]
-)
-def generate_visualization(n_clicks):
-    if n_clicks > 0:
-        completed_counts = (progress_table == "Completed").sum(axis=1).reset_index()
-        completed_counts.columns = ["Date", "Completed Activities"]
-        
-        fig = px.line(completed_counts, x="Date", y="Completed Activities",
-                      title="Number of Completed Activities Over Time")
-        return fig
-    return go.Figure()
+    # Task completion counts
+    task_completion_counts = (progress_table == "Completed").sum(axis=0).sort_values(ascending=False)
 
-# Run the app
-if __name__ == "__main__":
-    app.run_server(debug=True)
+    # Display KPIs
+    st.markdown("### 📈 Key Performance Indicators")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Completed Tasks", total_completed)
+    col2.metric("Total Tasks", total_tasks)
+    col3.metric("Completion Rate", f"{completion_rate:.2f}%")
+
+    # Task completion comparison bar chart
+    st.markdown("### 🔄 Task Completion Comparison")
+    task_completion_df = task_completion_counts.reset_index()
+    task_completion_df.columns = ["Activity", "Total Completed"]
+
+    fig_bar = px.bar(
+        task_completion_df,
+        x="Total Completed",
+        y="Activity",
+        orientation="h",
+        title="Total Completed Tasks Per Activity",
+        color="Total Completed",
+        color_continuous_scale="Viridis",
+    )
+    fig_bar.update_layout(
+        xaxis_title="Total Completed",
+        yaxis_title="Activity",
+        title_font_size=18,
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # Weekly progress heatmap
+    st.markdown("### 📅 Weekly Progress Heatmap")
+    daily_completed = (progress_table == "Completed").sum(axis=1)
+    daily_completed_df = daily_completed.reset_index()
+    daily_completed_df.columns = ["Date", "Completed Count"]
+    daily_completed_df["Date"] = pd.to_datetime(daily_completed_df["Date"])  # Ensure datetime type
+    daily_completed_df["Week"] = daily_completed_df["Date"].dt.isocalendar().week
+    daily_completed_df["Day"] = daily_completed_df["Date"].dt.day_name()
+
+    fig_heatmap = px.density_heatmap(
+        daily_completed_df,
+        x="Day",
+        y="Week",
+        z="Completed Count",
+        title="Weekly Task Completion Heatmap",
+        color_continuous_scale="Blues",
+    )
+    fig_heatmap.update_layout(
+        xaxis_title="Day of the Week",
+        yaxis_title="Week Number",
+        title_font_size=18,
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+    )
+    st.plotly_chart(fig_heatmap, use_container_width=True)

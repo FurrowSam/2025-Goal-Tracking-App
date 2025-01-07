@@ -3,8 +3,11 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import date
+import plotly.express as px
 
 # Set page configuration
+st.set_page_config(page_title="Daily Progress Tracker", layout="wide")
+
 # Initialize the DataFrame or load from a CSV file
 @st.cache_data
 def load_data():
@@ -32,7 +35,6 @@ def load_data():
     return progress_table
 
 # Load data or read from CSV
-# If the CSV file does not exist, create a new DataFrame
 try:
     progress_table = pd.read_csv("progress_tracker.csv", index_col=0)
     progress_table.index = pd.to_datetime(progress_table.index)  # Ensure proper datetime index
@@ -40,7 +42,6 @@ except FileNotFoundError:
     progress_table = load_data()
 
 # Title
-# Set the title of the app
 st.title("🌟 2025 Daily Progress Tracker")
 
 # Sidebar for navigation
@@ -55,23 +56,23 @@ if view == "Today's Activities":
     st.header(f"✅ Activities for {today}")
     st.markdown("Check off activities as you complete them:")
 
-    if str(today) in progress_table.index:
+    if str(today) in progress_table.index.astype(str):  # Ensure date format matches
         cols = st.columns(len(progress_table.columns) // 3 + 1)  # Split activities into columns
         for i, activity in enumerate(progress_table.columns):
             with cols[i % len(cols)]:
-                # Add a checkbox for each activity
-                if st.checkbox(activity, key=f"{today}_{activity}", value=(progress_table.loc[str(today), activity] == "Completed")):
+                key = f"{today.strftime('%Y-%m-%d')}_{activity}"  # Ensure unique keys
+                if st.checkbox(activity, key=key, value=(progress_table.loc[str(today), activity] == "Completed")):
                     progress_table.loc[str(today), activity] = "Completed"
                 else:
                     progress_table.loc[str(today), activity] = "Not Completed"
 
-                # Save progress to CSV in real-time
-                progress_table.to_csv("progress_tracker.csv")
+        # Save progress to CSV in real-time
+        progress_table.to_csv("progress_tracker.csv", index=True)  # Ensure index is saved
 
 elif view == "Full Progress Table":
     st.header("📋 Full Progress Table")
     st.markdown("Review your progress throughout the year.")
-    
+
     # Highlight completed rows in green
     def color_completed(val):
         return "background-color: #d4edda; color: black;" if val == "Completed" else ""
@@ -82,6 +83,9 @@ elif view == "Full Progress Table":
 elif view == "Visualizations":
     st.header("📊 Progress Dashboard")
     st.markdown("A snapshot of your progress and task completion overview.")
+
+    # Ensure progress_table index is datetime
+    progress_table.index = pd.to_datetime(progress_table.index)
 
     # Total number of tasks completed across all activities
     total_completed = (progress_table == "Completed").sum().sum()
@@ -100,7 +104,6 @@ elif view == "Visualizations":
 
     # Task completion comparison bar chart
     st.markdown("### 🔄 Task Completion Comparison")
-    import plotly.express as px
     task_completion_df = task_completion_counts.reset_index()
     task_completion_df.columns = ["Activity", "Total Completed"]
 
@@ -122,11 +125,12 @@ elif view == "Visualizations":
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Weekly progress heatmap (optional additional visualization)
+    # Weekly progress heatmap
     st.markdown("### 📅 Weekly Progress Heatmap")
     daily_completed = (progress_table == "Completed").sum(axis=1)
     daily_completed_df = daily_completed.reset_index()
     daily_completed_df.columns = ["Date", "Completed Count"]
+    daily_completed_df["Date"] = pd.to_datetime(daily_completed_df["Date"])  # Ensure datetime type
     daily_completed_df["Week"] = daily_completed_df["Date"].dt.isocalendar().week
     daily_completed_df["Day"] = daily_completed_df["Date"].dt.day_name()
 
