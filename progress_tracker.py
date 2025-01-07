@@ -51,6 +51,10 @@ view = st.sidebar.radio("Go to:", ["Today's Activities", "Full Progress Table", 
 # Select today's date
 today = st.sidebar.date_input("Select the date", date.today())
 
+today = pd.to_datetime(today)  # Convert to datetime for matching
+
+
+
 if view == "Today's Activities":
     # Display activities for today
     st.header(f"✅ Activities for {today.strftime('%d-%b-%y')}")
