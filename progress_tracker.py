@@ -82,7 +82,7 @@ elif view == "Full Progress Table":
     def color_completed(val):
         return "background-color: #d4edda; color: black;" if val == "Completed" else ""
 
-    styled_table = progress_table.styler.map(color_completed)
+    styled_table = progress_table.style.map(color_completed)
     # Format index for display
     progress_table_display = progress_table.copy()
     progress_table_display.index = progress_table_display.index.strftime("%d-%b-%y")
