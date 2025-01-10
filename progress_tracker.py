@@ -86,7 +86,7 @@ elif view == "Full Progress Table":
     # Format index for display
     progress_table_display = progress_table.copy()
     progress_table_display.index = progress_table_display.index.strftime("%d-%b-%y")
-    st.dataframe(progress_table_display.style.applymap(color_completed), use_container_width=True)
+    st.dataframe(progress_table_display.style.map(color_completed), use_container_width=True)
 
 elif view == "Visualizations":
     st.header("📊 Progress Dashboard")
